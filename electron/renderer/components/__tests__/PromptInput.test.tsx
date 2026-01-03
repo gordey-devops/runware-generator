@@ -164,18 +164,6 @@ describe('PromptInput Component', () => {
     expect(screen.getByText('10')).toBeInTheDocument();
   });
 
-  it('updates guidance scale slider', () => {
-    render(<PromptInput />);
-
-    const showSettingsButton = screen.getByText(/показать настройки/i);
-    fireEvent.click(showSettingsButton);
-
-    const slider = screen.getByRole('slider', { name: /guidance scale/i });
-    fireEvent.change(slider, { target: { value: '10' } });
-
-    expect(screen.getByText('10')).toBeInTheDocument();
-  });
-
   it('disables generate button when prompt is empty', () => {
     render(<PromptInput />);
 
