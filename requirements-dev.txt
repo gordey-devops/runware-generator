@@ -1,0 +1,24 @@
+# Development dependencies for Python backend
+# Updated: 2026-01-02
+
+# Testing (2026 versions)
+pytest>=8.3.0              # Testing framework
+pytest-cov>=6.0.0          # Coverage plugin
+pytest-asyncio>=0.25.2     # Async test support
+pytest-mock>=3.14.0        # Mocking utilities
+httpx>=0.28.1              # For testing HTTP clients
+
+# Linting and formatting (2026 versions)
+ruff>=0.8.0                # Fast Python linter & formatter (replaces black, flake8, isort)
+
+# Type checking (2026 versions)
+mypy>=1.13.0               # Static type checker
+types-aiofiles>=24.1.0     # Type stubs for aiofiles
+types-pillow>=11.0.0       # Type stubs for Pillow
+
+# Pre-commit hooks
+pre-commit>=4.0.0          # Git hook framework
+
+# Development utilities
+ipython>=8.31.0            # Enhanced Python shell (optional)
+pytest-watch>=4.2.0        # Auto-run tests on file changes (optional)
