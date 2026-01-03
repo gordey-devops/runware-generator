@@ -2,6 +2,8 @@ import { useCallback } from 'react';
 import { useGenerationStore } from '../store/generationStore';
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore } from '../store/uiStore';
+import { useWebSocket } from './useWebSocket';
+import { api } from '../api';
 import type {
   TextToImageRequest,
   ImageToImageRequest,
@@ -17,66 +19,95 @@ export const useGeneration = () => {
     addGeneration,
     sourceImage,
     strength,
+    setCurrentGenerationId,
   } = useGenerationStore();
   const { addItem } = useHistoryStore();
   const { addNotification } = useUiStore();
+  const { connect, disconnect } = useWebSocket();
 
   const generateTextToImage = useCallback(async () => {
     try {
-      console.log('[useGeneration] Starting generation...');
-      console.log('[useGeneration] window.electronAPI:', window.electronAPI);
-
-      if (!window.electronAPI || !window.electronAPI.generation) {
-        const errorMsg =
-          'Electron API is not available. Make sure the app is running in Electron environment.';
-        console.error('[useGeneration]', errorMsg);
-        setProgress({
-          status: 'error',
-          progress: 0,
-          error: errorMsg,
-        });
-        addNotification('error', errorMsg);
-        throw new Error(errorMsg);
-      }
+      console.log('[useGeneration] Starting text-to-image generation...');
 
       // Reset progress
       resetProgress();
-      setProgress({ status: 'generating', progress: 0 });
+      setProgress({ status: 'generating', progress: 0, message: 'Initializing...' });
 
       const request: TextToImageRequest = {
         prompt: params.prompt,
-        negativePrompt: params.negativePrompt || undefined,
+        negative_prompt: params.negativePrompt || undefined,
         width: params.width,
         height: params.height,
         steps: params.steps,
-        guidanceScale: params.guidanceScale,
+        guidance_scale: params.guidanceScale,
         seed: params.seed,
         model: params.model,
       };
 
       console.log('[useGeneration] Request:', request);
 
-      // Call Electron API
-      console.log('[useGeneration] Calling window.electronAPI.generation.textToImage...');
-      const result = await window.electronAPI.generation.textToImage(request);
-      console.log('[useGeneration] Result:', result);
+      // Start generation via API
+      const result = await api.generation.textToImage(request);
+      console.log('[useGeneration] Generation result:', result);
 
-      // Update progress
-      setProgress({ status: 'completed', progress: 100 });
-      setCurrentResult(result);
-      addGeneration(result);
-      addItem(result);
+      // Check if generation is already completed
+      if (result.status === 'completed') {
+        console.log('[useGeneration] Generation already completed, showing result');
+        setCurrentResult(result);
+        addGeneration(result);
+        addItem(result);
+        setProgress({ status: 'completed', progress: 100 });
+        addNotification('success', 'Image generated successfully!');
+        return result;
+      }
 
-      // Show notification
-      addNotification('success', 'Image generated successfully!');
+      // Set current generation ID for WebSocket
+      setCurrentGenerationId(result.id);
+      console.log('[useGeneration] Generation in progress, ID:', result.id);
+
+      // Connect WebSocket for progress updates
+      connect(result.id, {
+        onProgress: (id, progress, message) => {
+          console.log('[useGeneration] Progress:', id, progress, message);
+          setProgress({ status: 'generating', progress, message });
+        },
+        onComplete: async (id, data) => {
+          console.log('[useGeneration] Complete via WebSocket:', id, data);
+
+          // Fetch full generation data from API
+          const fullResult = await api.history.getById(id);
+          setCurrentResult(fullResult);
+          addGeneration(fullResult);
+          addItem(fullResult);
+          setProgress({ status: 'completed', progress: 100 });
+          setCurrentGenerationId(null);
+          disconnect();
+
+          addNotification('success', 'Image generated successfully!');
+        },
+        onError: (id, error) => {
+          console.error('[useGeneration] Error:', id, error);
+          setProgress({
+            status: 'error',
+            progress: 0,
+            error,
+          });
+          setCurrentGenerationId(null);
+          disconnect();
+          addNotification('error', 'Failed to generate image');
+        },
+      });
 
       return result;
     } catch (error) {
+      console.error('[useGeneration] Exception:', error);
       setProgress({
         status: 'error',
         progress: 0,
         error: error instanceof Error ? error.message : 'Generation failed',
       });
+      setCurrentGenerationId(null);
+      disconnect();
       addNotification('error', 'Failed to generate image');
       throw error;
     }
@@ -88,6 +119,9 @@ export const useGeneration = () => {
     addGeneration,
     addItem,
     addNotification,
+    setCurrentGenerationId,
+    connect,
+    disconnect,
   ]);
 
   const generateImageToImage = useCallback(async () => {
@@ -98,27 +132,64 @@ export const useGeneration = () => {
 
     try {
       resetProgress();
-      setProgress({ status: 'generating', progress: 0 });
+      setProgress({ status: 'generating', progress: 0, message: 'Initializing...' });
 
       const request: ImageToImageRequest = {
         prompt: params.prompt,
-        negativePrompt: params.negativePrompt || undefined,
-        inputImage: sourceImage,
+        negative_prompt: params.negativePrompt || undefined,
+        image_url: sourceImage,
         strength: strength,
         steps: params.steps,
-        guidanceScale: params.guidanceScale,
+        guidance_scale: params.guidanceScale,
         seed: params.seed,
         model: params.model,
       };
 
-      const result = await window.electronAPI.generation.imageToImage(request);
+      console.log('[useGeneration] Image-to-image request:', request);
 
-      setProgress({ status: 'completed', progress: 100 });
-      setCurrentResult(result);
-      addGeneration(result);
-      addItem(result);
+      const result = await api.generation.imageToImage(request);
+      console.log('[useGeneration] Generation result:', result);
 
-      addNotification('success', 'Image transformation completed!');
+      // Check if already completed
+      if (result.status === 'completed') {
+        console.log('[useGeneration] Image-to-image already completed');
+        setCurrentResult(result);
+        addGeneration(result);
+        addItem(result);
+        setProgress({ status: 'completed', progress: 100 });
+        addNotification('success', 'Image transformation completed!');
+        return result;
+      }
+
+      setCurrentGenerationId(result.id);
+      console.log('[useGeneration] Image-to-image in progress, ID:', result.id);
+
+      connect(result.id, {
+        onProgress: (id, progress, message) => {
+          setProgress({ status: 'generating', progress, message });
+        },
+        onComplete: async (id, data) => {
+          const fullResult = await api.history.getById(id);
+          setCurrentResult(fullResult);
+          addGeneration(fullResult);
+          addItem(fullResult);
+          setProgress({ status: 'completed', progress: 100 });
+          setCurrentGenerationId(null);
+          disconnect();
+
+          addNotification('success', 'Image transformation completed!');
+        },
+        onError: (id, error) => {
+          setProgress({
+            status: 'error',
+            progress: 0,
+            error,
+          });
+          setCurrentGenerationId(null);
+          disconnect();
+          addNotification('error', 'Failed to transform image');
+        },
+      });
 
       return result;
     } catch (error) {
@@ -127,6 +198,8 @@ export const useGeneration = () => {
         progress: 0,
         error: error instanceof Error ? error.message : 'Generation failed',
       });
+      setCurrentGenerationId(null);
+      disconnect();
       addNotification('error', 'Failed to transform image');
       throw error;
     }
@@ -140,16 +213,19 @@ export const useGeneration = () => {
     addGeneration,
     addItem,
     addNotification,
+    setCurrentGenerationId,
+    connect,
+    disconnect,
   ]);
 
   const generateTextToVideo = useCallback(async () => {
     try {
       resetProgress();
-      setProgress({ status: 'generating', progress: 0 });
+      setProgress({ status: 'generating', progress: 0, message: 'Initializing...' });
 
       const request: TextToVideoRequest = {
         prompt: params.prompt,
-        negativePrompt: params.negativePrompt || undefined,
+        negative_prompt: params.negativePrompt || undefined,
         duration: 5,
         fps: 24,
         width: params.width,
@@ -158,14 +234,51 @@ export const useGeneration = () => {
         model: params.model,
       };
 
-      const result = await window.electronAPI.generation.textToVideo(request);
+      console.log('[useGeneration] Text-to-video request:', request);
 
-      setProgress({ status: 'completed', progress: 100 });
-      setCurrentResult(result);
-      addGeneration(result);
-      addItem(result);
+      const result = await api.generation.textToVideo(request);
+      console.log('[useGeneration] Generation result:', result);
 
-      addNotification('success', 'Video generated successfully!');
+      // Check if already completed
+      if (result.status === 'completed') {
+        console.log('[useGeneration] Text-to-video already completed');
+        setCurrentResult(result);
+        addGeneration(result);
+        addItem(result);
+        setProgress({ status: 'completed', progress: 100 });
+        addNotification('success', 'Video generated successfully!');
+        return result;
+      }
+
+      setCurrentGenerationId(result.id);
+      console.log('[useGeneration] Text-to-video in progress, ID:', result.id);
+
+      connect(result.id, {
+        onProgress: (id, progress, message) => {
+          setProgress({ status: 'generating', progress, message });
+        },
+        onComplete: async (id, data) => {
+          const fullResult = await api.history.getById(id);
+          setCurrentResult(fullResult);
+          addGeneration(fullResult);
+          addItem(fullResult);
+          setProgress({ status: 'completed', progress: 100 });
+          setCurrentGenerationId(null);
+          disconnect();
+
+          addNotification('success', 'Video generated successfully!');
+        },
+        onError: (id, error) => {
+          setProgress({
+            status: 'error',
+            progress: 0,
+            error,
+          });
+          setCurrentGenerationId(null);
+          disconnect();
+          addNotification('error', 'Failed to generate video');
+        },
+      });
 
       return result;
     } catch (error) {
@@ -174,6 +287,8 @@ export const useGeneration = () => {
         progress: 0,
         error: error instanceof Error ? error.message : 'Generation failed',
       });
+      setCurrentGenerationId(null);
+      disconnect();
       addNotification('error', 'Failed to generate video');
       throw error;
     }
@@ -185,6 +300,9 @@ export const useGeneration = () => {
     addGeneration,
     addItem,
     addNotification,
+    setCurrentGenerationId,
+    connect,
+    disconnect,
   ]);
 
   return {

@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api", tags=["generation"])
 @router.post(
     "/generate/text-to-image",
     response_model=GenerationResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_202_ACCEPTED,
     responses={
         400: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
@@ -41,14 +41,17 @@ async def generate_text_to_image(
     """
     Generate image(s) from text prompt.
 
+    Returns immediately with generation ID.
+    Result is sent via WebSocket when complete.
+
     Args:
         request: Text-to-image generation request
         db: Database session
 
     Returns:
-        GenerationResponse with generation details
+        GenerationResponse with generation ID (status: processing)
     """
-    start_time = datetime.utcnow()
+    from backend.main import manager as ws_manager
 
     # Create database record
     generation = Generation(
@@ -77,55 +80,70 @@ async def generate_text_to_image(
     db.commit()
     db.refresh(generation)
 
-    try:
-        logger.info(f"Starting text-to-image generation (ID: {generation.id})")
+    # Start generation in background
+    generation_id = generation.id
 
-        # Generate image using Runware service
-        results = await runware_service.text_to_image(
-            prompt=request.prompt,
-            negative_prompt=request.negative_prompt,
-            width=request.width,
-            height=request.height,
-            steps=request.steps,
-            guidance_scale=request.guidance_scale,
-            seed=request.seed,
-            model=request.model,
-            num_images=request.num_images,
-        )
+    async def run_generation():
+        try:
+            logger.info(f"Starting text-to-image generation (ID: {generation_id})")
 
-        # Update database with results (use first image if multiple)
-        first_result = results[0]
-        generation.status = "completed"
-        generation.output_path = first_result["output_path"]
-        generation.output_url = first_result["image_url"]
-        generation.completed_at = datetime.utcnow()
-        generation.processing_time = (datetime.utcnow() - start_time).total_seconds()
-        generation.seed = first_result["seed"]
+            # Send initial progress
+            await ws_manager.send_progress(generation_id, 10.0, "Initializing...")
 
-        db.commit()
-        db.refresh(generation)
+            # Generate image using Runware service
+            results = await runware_service.text_to_image(
+                prompt=request.prompt,
+                negative_prompt=request.negative_prompt,
+                width=request.width,
+                height=request.height,
+                steps=request.steps,
+                guidance_scale=request.guidance_scale,
+                seed=request.seed,
+                model=request.model,
+                num_images=request.num_images,
+                progress_callback=lambda p, m: ws_manager.send_progress(generation_id, p, m),
+            )
 
-        logger.info(f"Text-to-image generation completed (ID: {generation.id})")
+            # Send completion via WebSocket
+            first_result = results[0]
 
-        return GenerationResponse.from_orm(generation)
+            # Update database
+            generation.status = "completed"
+            generation.output_path = first_result["output_path"]
+            generation.output_url = first_result["image_url"]
+            generation.completed_at = datetime.utcnow()
+            generation.processing_time = first_result.get("processing_time", 0)
+            generation.seed = first_result["seed"]
+            db.commit()
 
-    except Exception as e:
-        logger.error(f"Text-to-image generation failed (ID: {generation.id}): {str(e)}")
-        generation.status = "failed"
-        generation.error_message = str(e)
-        generation.completed_at = datetime.utcnow()
-        db.commit()
+            await ws_manager.send_complete(generation_id, GenerationResponse.from_orm(generation).dict())
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Generation failed: {str(e)}",
-        )
+            logger.info(f"Text-to-image generation completed (ID: {generation_id})")
+
+        except Exception as e:
+            logger.error(f"Text-to-image generation failed (ID: {generation_id}): {str(e)}")
+
+            # Update database with error
+            generation.status = "failed"
+            generation.error_message = str(e)
+            generation.completed_at = datetime.utcnow()
+            db.commit()
+
+            await ws_manager.send_error(generation_id, str(e))
+
+    # Start background task
+    import asyncio
+    asyncio.create_task(run_generation())
+
+    logger.info(f"Text-to-image generation queued (ID: {generation_id})")
+
+    return GenerationResponse.from_orm(generation)
 
 
 @router.post(
     "/generate/image-to-image",
     response_model=GenerationResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def generate_image_to_image(
     request: ImageToImageRequest,
@@ -141,7 +159,7 @@ async def generate_image_to_image(
     Returns:
         GenerationResponse with generation details
     """
-    start_time = datetime.utcnow()
+    from backend.main import manager as ws_manager
 
     generation = Generation(
         generation_type="image-to-image",
@@ -166,45 +184,53 @@ async def generate_image_to_image(
     db.commit()
     db.refresh(generation)
 
-    try:
-        logger.info(f"Starting image-to-image generation (ID: {generation.id})")
+    generation_id = generation.id
 
-        result = await runware_service.image_to_image(
-            prompt=request.prompt,
-            image_url=request.image_url,
-            negative_prompt=request.negative_prompt,
-            strength=request.strength,
-            steps=request.steps,
-            guidance_scale=request.guidance_scale,
-            seed=request.seed,
-            model=request.model,
-        )
+    async def run_generation():
+        try:
+            logger.info(f"Starting image-to-image generation (ID: {generation_id})")
 
-        generation.status = "completed"
-        generation.output_path = result["output_path"]
-        generation.output_url = result["image_url"]
-        generation.completed_at = datetime.utcnow()
-        generation.processing_time = (datetime.utcnow() - start_time).total_seconds()
-        generation.seed = result["seed"]
+            await ws_manager.send_progress(generation_id, 10.0, "Initializing...")
 
-        db.commit()
-        db.refresh(generation)
+            result = await runware_service.image_to_image(
+                prompt=request.prompt,
+                image_url=request.image_url,
+                negative_prompt=request.negative_prompt,
+                strength=request.strength,
+                steps=request.steps,
+                guidance_scale=request.guidance_scale,
+                seed=request.seed,
+                model=request.model,
+                progress_callback=lambda p, m: ws_manager.send_progress(generation_id, p, m),
+            )
 
-        logger.info(f"Image-to-image generation completed (ID: {generation.id})")
+            generation.status = "completed"
+            generation.output_path = result["output_path"]
+            generation.output_url = result["image_url"]
+            generation.completed_at = datetime.utcnow()
+            generation.processing_time = result.get("processing_time", 0)
+            generation.seed = result["seed"]
+            db.commit()
 
-        return GenerationResponse.from_orm(generation)
+            await ws_manager.send_complete(generation_id, GenerationResponse.from_orm(generation).dict())
 
-    except Exception as e:
-        logger.error(f"Image-to-image generation failed (ID: {generation.id}): {str(e)}")
-        generation.status = "failed"
-        generation.error_message = str(e)
-        generation.completed_at = datetime.utcnow()
-        db.commit()
+            logger.info(f"Image-to-image generation completed (ID: {generation_id})")
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Generation failed: {str(e)}",
-        )
+        except Exception as e:
+            logger.error(f"Image-to-image generation failed (ID: {generation_id}): {str(e)}")
+            generation.status = "failed"
+            generation.error_message = str(e)
+            generation.completed_at = datetime.utcnow()
+            db.commit()
+
+            await ws_manager.send_error(generation_id, str(e))
+
+    import asyncio
+    asyncio.create_task(run_generation())
+
+    logger.info(f"Image-to-image generation queued (ID: {generation_id})")
+
+    return GenerationResponse.from_orm(generation)
 
 
 @router.post("/upscale", response_model=GenerationResponse, status_code=status.HTTP_201_CREATED)

@@ -5,6 +5,8 @@ import {
   Video,
   Maximize2,
   Settings as SettingsIcon,
+  Download,
+  Trash2,
 } from 'lucide-react';
 import { PromptInput } from '../components/PromptInput';
 import { ImageGallery } from '../components/ImageGallery';
@@ -12,11 +14,15 @@ import { ProgressBar } from '../components/ProgressBar';
 import SettingsModal from '../components/SettingsModal';
 import { useUiStore } from '../store/uiStore';
 import { useStore } from '../store/store';
+import { useGenerationStore } from '../store/generationStore';
+import { useHistoryStore } from '../store/historyStore';
 
 export const GeneratorPage: React.FC = () => {
   const { activeTab, setActiveTab } = useUiStore();
   const { isGenerating, currentGeneration } = useStore();
+  const { currentResult, isGenerating: isGenGenerating } = useGenerationStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showFullResult, setShowFullResult] = useState(false);
 
   const tabs = [
     { id: 'text-to-image' as const, label: 'Text → Image', icon: Sparkles },
@@ -61,7 +67,10 @@ export const GeneratorPage: React.FC = () => {
                         : 'bg-background-input hover:bg-white/10 text-foreground border border-white/5'
                     }`}
                   >
-                    <Icon size={18} className={isActive ? '' : 'group-hover:scale-110 transition-transform'} />
+                    <Icon
+                      size={18}
+                      className={isActive ? '' : 'group-hover:scale-110 transition-transform'}
+                    />
                     {tab.label}
                     {isActive && (
                       <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 animate-shimmer" />
@@ -87,7 +96,7 @@ export const GeneratorPage: React.FC = () => {
 
         {/* Правая область контента */}
         <div className="flex-1 flex flex-col gap-4 min-w-0">
-          {isGenerating && currentGeneration && (
+          {isGenerating && currentResult && (
             <div className="bg-gradient-to-br from-background-card to-background-card/50 rounded-xl p-5 shadow-xl border border-white/5 animate-fade-in">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -108,7 +117,7 @@ export const GeneratorPage: React.FC = () => {
                 </button>
               </div>
               <p className="text-xs text-foreground-muted truncate bg-background/50 px-3 py-2 rounded-lg border border-white/5">
-                {currentGeneration.prompt}
+                {currentResult.prompt}
               </p>
             </div>
           )}

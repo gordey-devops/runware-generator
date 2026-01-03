@@ -1,5 +1,9 @@
 import { create } from 'zustand';
-import type { TextToImageRequest, ImageToImageRequest, GenerationItem } from '@shared/types/api.types';
+import type {
+  TextToImageRequest,
+  ImageToImageRequest,
+  GenerationResponse,
+} from '@shared/types/api.types';
 
 export interface GenerationProgress {
   status: 'idle' | 'generating' | 'completed' | 'error';
@@ -17,6 +21,7 @@ interface GenerationParams {
   guidanceScale: number;
   seed?: number;
   model: string;
+  image_url?: string;
 }
 
 interface GenerationStore {
@@ -31,12 +36,12 @@ interface GenerationStore {
   resetProgress: () => void;
 
   // Current generation result
-  currentResult: GenerationItem | null;
-  setCurrentResult: (result: GenerationItem | null) => void;
+  currentResult: GenerationResponse | null;
+  setCurrentResult: (result: GenerationResponse | null) => void;
 
   // Recent generations (last 10)
-  recentGenerations: GenerationItem[];
-  addGeneration: (generation: GenerationItem) => void;
+  recentGenerations: GenerationResponse[];
+  addGeneration: (generation: GenerationResponse) => void;
   clearRecent: () => void;
 
   // Image-to-Image specific
@@ -44,6 +49,14 @@ interface GenerationStore {
   setSourceImage: (image: string | null) => void;
   strength: number;
   setStrength: (strength: number) => void;
+
+  // WebSocket integration
+  currentGenerationId: number | null;
+  setCurrentGenerationId: (id: number | null) => void;
+
+  // Generation status
+  isGenerating: boolean;
+  setIsGenerating: (generating: boolean) => void;
 }
 
 const defaultParams: GenerationParams = {
@@ -100,4 +113,12 @@ export const useGenerationStore = create<GenerationStore>((set) => ({
   setSourceImage: (image) => set({ sourceImage: image }),
   strength: 0.75,
   setStrength: (strength) => set({ strength }),
+
+  // WebSocket integration
+  currentGenerationId: null,
+  setCurrentGenerationId: (id) => set({ currentGenerationId: id }),
+
+  // Generation status
+  isGenerating: false,
+  setIsGenerating: (generating) => set({ isGenerating: generating }),
 }));

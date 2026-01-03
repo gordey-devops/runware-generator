@@ -14,7 +14,10 @@ export const browserAPI = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (response.status === 202 || response.status === 200 || response.status === 201) {
+        return response.json();
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       return response.json();
     },
 
@@ -24,7 +27,10 @@ export const browserAPI = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (response.status === 202 || response.status === 200 || response.status === 201) {
+        return response.json();
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       return response.json();
     },
 
@@ -34,7 +40,10 @@ export const browserAPI = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (response.status === 202 || response.status === 200 || response.status === 201) {
+        return response.json();
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       return response.json();
     },
 

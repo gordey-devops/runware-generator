@@ -1,32 +1,20 @@
 import React, { useState } from 'react';
 import { Sparkles, Settings2, Wand2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useUiStore } from '../store/uiStore';
-import { useStore } from '../store/store';
+import { useGenerationStore } from '../store/generationStore';
+import { useGeneration } from '../hooks/useGeneration';
 import ImageUpload from './ImageUpload';
-import { api } from '../api';
 
 export const PromptInput: React.FC = () => {
   const { activeTab } = useUiStore();
-  const {
-    settings,
-    updateSettings,
-    addGeneration,
-    updateGeneration,
-    setIsGenerating,
-    setProgress,
-  } = useStore();
+  const { params, setParams, sourceImage, setSourceImage, strength, setStrength, isGenerating } =
+    useGenerationStore();
+  const { generateTextToImage, generateImageToImage, generateTextToVideo } = useGeneration();
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [prompt, setPrompt] = useState('');
-  const [negativePrompt, setNegativePrompt] = useState('');
-  const [width, setWidth] = useState(settings.defaultWidth);
-  const [height, setHeight] = useState(settings.defaultHeight);
-  const [steps, setSteps] = useState(settings.defaultSteps);
-  const [guidanceScale, setGuidanceScale] = useState(settings.defaultGuidanceScale);
-  const [sourceImage, setSourceImage] = useState<File | null>(null);
-  const [strength, setStrength] = useState(0.7);
+  const [localSourceFile, setLocalSourceFile] = useState<File | null>(null);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+    if (!params.prompt || !params.prompt.trim()) return;
 
     if (activeTab === 'image-to-image' && !sourceImage) {
       alert('Please select a source image for image-to-image generation');
@@ -34,68 +22,19 @@ export const PromptInput: React.FC = () => {
     }
 
     try {
-      setIsGenerating(true);
-      setProgress(0);
-
-      const newGeneration = {
-        type: activeTab,
-        prompt,
-        negativePrompt,
-        width,
-        height,
-        steps: activeTab === 'text-to-image' ? steps : undefined,
-        guidanceScale: activeTab === 'text-to-image' ? guidanceScale : undefined,
-        status: 'pending' as const,
-      };
-
-      const tempId = Date.now();
-      addGeneration({ ...newGeneration, id: tempId } as any);
-
-      let result;
       if (activeTab === 'text-to-image') {
-        result = await api.generation.textToImage({
-          prompt,
-          negative_prompt: negativePrompt || null,
-          width,
-          height,
-          steps,
-          guidance_scale: guidanceScale,
-        });
+        await generateTextToImage();
       } else if (activeTab === 'image-to-image') {
-        const imageData = await fileToBase64(sourceImage!);
-        result = await api.generation.imageToImage({
-          prompt,
-          image_url: imageData,
-          negative_prompt: negativePrompt || null,
-          strength,
-          steps,
-          guidance_scale: guidanceScale,
-        });
+        await generateImageToImage();
       } else if (activeTab === 'text-to-video') {
-        result = await api.generation.textToVideo({
-          prompt,
-          negative_prompt: negativePrompt || null,
-          width,
-          height,
-          duration: 3,
-          fps: 24,
-        });
-      }
-
-      if (result && 'id' in result) {
-        updateGeneration(tempId, {
-          id: result.id,
-          outputUrl: result.output_url || undefined,
-          status: result.status === 'completed' ? 'completed' : 'pending',
-        });
-        setProgress(100);
+        await generateTextToVideo();
       }
     } catch (error) {
       console.error('Generation failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      alert(`Ошибка генерации: ${errorMessage}\n\nПроверьте:\n1. Правильность API ключа Runware\n2. Интернет-соединение\n3. Что backend запущен и доступен`);
-    } finally {
-      setIsGenerating(false);
+      alert(
+        `Ошибка генерации: ${errorMessage}\n\nПроверьте:\n1. Правильность API ключа Runware\n2. Интернет-соединение\n3. Что backend запущен и доступен`
+      );
     }
   };
 
@@ -108,8 +47,21 @@ export const PromptInput: React.FC = () => {
     });
   };
 
+  const handleImageUpload = async (file: File) => {
+    setLocalSourceFile(file);
+    const imageData = await fileToBase64(file);
+    setSourceImage(imageData);
+    setParams({ image_url: imageData });
+  };
+
+  const handleImageClear = () => {
+    setLocalSourceFile(null);
+    setSourceImage(null);
+    setParams({ image_url: '' });
+  };
+
   const isImageToImage = activeTab === 'image-to-image';
-  const canGenerate = prompt.trim() && (!isImageToImage || sourceImage);
+  const canGenerate = params.prompt && params.prompt.trim() && (!isImageToImage || sourceImage);
 
   return (
     <div className="space-y-5">
@@ -121,8 +73,8 @@ export const PromptInput: React.FC = () => {
           </label>
           <textarea
             placeholder="Опишите, что хотите сгенерировать..."
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            value={params.prompt}
+            onChange={(e) => setParams({ prompt: e.target.value })}
             rows={4}
             className="w-full bg-background-input border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none font-mono"
           />
@@ -134,9 +86,9 @@ export const PromptInput: React.FC = () => {
               Исходное изображение
             </label>
             <ImageUpload
-              value={sourceImage || undefined}
-              onChange={setSourceImage}
-              onClear={() => setSourceImage(null)}
+              value={localSourceFile || undefined}
+              onChange={handleImageUpload}
+              onClear={handleImageClear}
               maxSizeMB={10}
             />
           </div>
@@ -148,8 +100,8 @@ export const PromptInput: React.FC = () => {
           </label>
           <textarea
             placeholder="Чего избежать в генерации..."
-            value={negativePrompt}
-            onChange={(e) => setNegativePrompt(e.target.value)}
+            value={params.negativePrompt}
+            onChange={(e) => setParams({ negativePrompt: e.target.value })}
             rows={2}
             className="w-full bg-background-input border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all resize-none font-mono text-foreground-muted"
           />
@@ -166,11 +118,10 @@ export const PromptInput: React.FC = () => {
             <div className="space-y-2">
               <label className="text-xs font-medium text-foreground-muted">Размер</label>
               <select
-                value={`${width}x${height}`}
+                value={`${params.width}x${params.height}`}
                 onChange={(e) => {
                   const [w, h] = e.target.value.split('x').map(Number);
-                  setWidth(w);
-                  setHeight(h);
+                  setParams({ width: w, height: h });
                 }}
                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
               >
@@ -184,9 +135,13 @@ export const PromptInput: React.FC = () => {
 
             <div className="space-y-2">
               <label className="text-xs font-medium text-foreground-muted">Модель</label>
-              <select className="w-full bg-background border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer">
-                <option>Runware v1 (Fast)</option>
-                <option>Runware v1.1 (Quality)</option>
+              <select
+                value={params.model}
+                onChange={(e) => setParams({ model: e.target.value })}
+                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+              >
+                <option value="runware:100@1">Runware v1 (Fast)</option>
+                <option value="runware:101@1">Runware v1.1 (Quality)</option>
               </select>
             </div>
           </div>
@@ -210,15 +165,15 @@ export const PromptInput: React.FC = () => {
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-foreground">Шаги генерации</label>
                 <span className="text-sm font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
-                  {steps}
+                  {params.steps}
                 </span>
               </div>
               <input
                 type="range"
                 min="10"
                 max="50"
-                value={steps}
-                onChange={(e) => setSteps(parseInt(e.target.value))}
+                value={params.steps}
+                onChange={(e) => setParams({ steps: parseInt(e.target.value) })}
                 className="w-full h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary"
               />
               <div className="flex justify-between text-xs text-foreground-muted">
@@ -233,7 +188,7 @@ export const PromptInput: React.FC = () => {
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-foreground">Точность</label>
                 <span className="text-sm font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
-                  {guidanceScale}
+                  {params.guidanceScale}
                 </span>
               </div>
               <input
@@ -241,8 +196,8 @@ export const PromptInput: React.FC = () => {
                 min="1"
                 max="20"
                 step="0.5"
-                value={guidanceScale}
-                onChange={(e) => setGuidanceScale(parseFloat(e.target.value))}
+                value={params.guidanceScale}
+                onChange={(e) => setParams({ guidanceScale: parseFloat(e.target.value) })}
                 className="w-full h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary"
               />
               <div className="flex justify-between text-xs text-foreground-muted">
@@ -287,15 +242,19 @@ export const PromptInput: React.FC = () => {
       {/* Кнопка генерации */}
       <button
         onClick={handleGenerate}
-        disabled={!canGenerate}
+        disabled={!canGenerate || isGenerating}
         className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary-600 hover:to-accent-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-lg text-sm font-bold transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 uppercase tracking-wide"
       >
         {activeTab === 'text-to-image' && <Sparkles size={18} />}
         {activeTab === 'image-to-image' && <Wand2 size={18} />}
         {activeTab === 'text-to-video' && <Wand2 size={18} />}
-        {activeTab === 'text-to-image' && 'Сгенерировать изображение'}
-        {activeTab === 'image-to-image' && 'Преобразовать изображение'}
-        {activeTab === 'text-to-video' && 'Сгенерировать видео'}
+        {isGenerating
+          ? 'Генерация...'
+          : activeTab === 'text-to-image' && 'Сгенерировать изображение'}
+        {isGenerating
+          ? 'Генерация...'
+          : activeTab === 'image-to-image' && 'Преобразовать изображение'}
+        {isGenerating ? 'Генерация...' : activeTab === 'text-to-video' && 'Сгенерировать видео'}
       </button>
 
       {/* Совет */}

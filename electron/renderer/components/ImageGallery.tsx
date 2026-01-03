@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
 import { Download, Trash2, Heart, Maximize2 } from 'lucide-react';
 import { useStore } from '../store/store';
+import { useGenerationStore } from '../store/generationStore';
+import { useHistoryStore } from '../store/historyStore';
 
 export const ImageGallery: React.FC = () => {
-  const { history, deleteGeneration } = useStore();
+  const { deleteHistoryItem } = useHistoryStore();
+  const { currentResult } = useGenerationStore();
+  const { items: historyItems } = useHistoryStore();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
+
+  // Combine current result with history (avoid duplicates)
+  const allImages = currentResult
+    ? [currentResult, ...historyItems.filter((h) => h.id !== currentResult.id)]
+    : historyItems;
 
   const handleDownload = async (url: string, filename: string) => {
     try {
@@ -23,7 +32,7 @@ export const ImageGallery: React.FC = () => {
     }
   };
 
-  if (history.length === 0) {
+  if (allImages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-foreground-muted">
         <div className="text-center space-y-3">
@@ -38,24 +47,21 @@ export const ImageGallery: React.FC = () => {
   return (
     <>
       <div className="grid grid-cols-2 gap-4 auto-rows-auto">
-        {history.map((item) => (
+        {allImages.map((item) => (
           <ImageCard
             key={item.id}
             item={item}
             onClick={() => setSelectedImage(item.id)}
-            onDelete={() => deleteGeneration(item.id)}
-            onDownload={() => {
-              if (item.outputUrl) {
-                handleDownload(item.outputUrl, `generation-${item.id}.png`);
-              }
-            }}
+            onDelete={() => deleteHistoryItem(item.id)}
+            onDownload={(item as any)['output_url']}
+            isCurrentResult={currentResult?.id === item.id}
           />
         ))}
       </div>
 
       {selectedImage && (
         <ImageModal
-          item={history.find((i) => i.id === selectedImage)!}
+          item={historyItems.find((i: any) => i.id === selectedImage)!}
           onClose={() => setSelectedImage(null)}
           onDownload={handleDownload}
         />
@@ -68,53 +74,73 @@ const ImageCard: React.FC<{
   item: any;
   onClick: () => void;
   onDelete: () => void;
-  onDownload: () => void;
-}> = ({ item, onClick, onDelete, onDownload }) => {
+  onDownload: (url: string, filename: string) => void;
+  isCurrentResult?: boolean;
+}> = ({ item, onClick, onDelete, onDownload, isCurrentResult }) => {
+  // Handle both camelCase (GenerationItem) and snake_case (GenerationResponse) properties
+  const itemData = item as any;
+  const imageUrl = itemData['output_url'];
+  const width = itemData.parameters?.width || itemData.width;
+  const height = itemData.parameters?.height || itemData.height;
+  const steps = itemData.parameters?.steps || itemData.steps;
+  const guidanceScale = itemData.parameters?.guidance_scale || itemData.guidanceScale;
+  const createdAt = itemData.created_at || itemData.createdAt;
+
+  const handleDownloadClick = () => {
+    if (imageUrl) {
+      onDownload(imageUrl, `generation-${item.id}.png`);
+    }
+  };
+
   return (
     <div
       onClick={onClick}
-      className="group relative bg-background-card rounded-card overflow-hidden cursor-pointer shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1"
+      className={
+        isCurrentResult
+          ? 'group relative bg-background-card rounded-card overflow-hidden cursor-pointer shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 ring-2 ring-primary ring-offset-2 ring-offset-background'
+          : 'group relative bg-background-card rounded-card overflow-hidden cursor-pointer shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1'
+      }
     >
       <div className="aspect-square bg-background-input flex items-center justify-center overflow-hidden">
-        {item.outputUrl ? (
+        {imageUrl ? (
           <img
-            src={item.outputUrl}
+            src={imageUrl}
             alt={item.prompt}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           />
         ) : (
           <div className="text-foreground-muted">Нет превью</div>
         )}
+      </div>
 
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDownload();
-            }}
-            className="p-2 bg-background-card hover:bg-white/20 rounded-full transition-colors"
-            title="Скачать"
-          >
-            <Download size={20} className="text-white" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick();
-            }}
-            className="p-2 bg-background-card hover:bg-white/20 rounded-full transition-colors"
-            title="Открыть"
-          >
-            <Maximize2 size={20} className="text-white" />
-          </button>
-        </div>
+      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownloadClick();
+          }}
+          className="p-2 bg-background-card hover:bg-white/20 rounded-full transition-colors"
+          title="Скачать"
+        >
+          <Download size={20} className="text-white" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+          className="p-2 bg-background-card hover:bg-white/20 rounded-full transition-colors"
+          title="Открыть"
+        >
+          <Maximize2 size={20} className="text-white" />
+        </button>
       </div>
 
       <div className="p-3">
         <p className="text-xs text-foreground-muted truncate mb-2">{item.prompt}</p>
         <div className="flex items-center justify-between">
           <span className="text-xs text-foreground-muted">
-            {item.width} × {item.height}
+            {width} × {height}
           </span>
           <button
             onClick={(e) => {

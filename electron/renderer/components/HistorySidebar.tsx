@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, Star, Trash2, X, ChevronRight } from 'lucide-react';
+import { Search, Filter, Trash2, X, ChevronRight } from 'lucide-react';
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore } from '../store/uiStore';
 import { Input } from './Input';
 import { Select } from './Select';
 import { Button } from './Button';
 import { clsx } from 'clsx';
-import type { GenerationItem } from '@shared/types/api.types';
-import { api } from '../api';
+import type { GenerationResponse } from '@shared/types/api.types';
 
 interface HistoryItemProps {
-  item: GenerationItem;
+  item: GenerationResponse;
   isSelected: boolean;
   onClick: () => void;
 }
 
 const HistoryItem: React.FC<HistoryItemProps> = ({ item, isSelected, onClick }) => {
+  // Extract width and height from parameters
+  const width = (item.parameters as any)?.width || 512;
+  const height = (item.parameters as any)?.height || 512;
+
   return (
     <div
       onClick={onClick}
@@ -28,9 +31,9 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item, isSelected, onClick }) 
     >
       {/* Thumbnail */}
       <div className="aspect-square bg-gray-900 rounded mb-2 overflow-hidden">
-        {item.outputUrl ? (
+        {item.output_url ? (
           <img
-            src={item.outputUrl}
+            src={item.output_url}
             alt={item.prompt}
             className="w-full h-full object-cover"
             loading="lazy"
@@ -45,20 +48,20 @@ const HistoryItem: React.FC<HistoryItemProps> = ({ item, isSelected, onClick }) 
       {/* Info */}
       <div className="space-y-1">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-xs text-gray-300 line-clamp-2 flex-1">
-            {item.prompt}
-          </p>
-          {item.favorite && <Star className="w-3 h-3 text-yellow-500 fill-current flex-shrink-0" />}
-        </div>
-        
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>{item.width}×{item.height}</span>
-          <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+          <p className="text-xs text-gray-300 line-clamp-2 flex-1">{item.prompt}</p>
+          {(item.parameters as any)?.favorite && (
+            <Filter className="w-3 h-3 text-yellow-500 fill-current flex-shrink-0" />
+          )}
         </div>
 
-        {item.status === 'failed' && (
-          <div className="text-xs text-red-500">Failed</div>
-        )}
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>
+            {width}×{height}
+          </span>
+          <span>{new Date(item.created_at).toLocaleDateString()}</span>
+        </div>
+
+        {item.status === 'failed' && <div className="text-xs text-red-500">Failed</div>}
       </div>
     </div>
   );
@@ -68,47 +71,33 @@ export const HistorySidebar: React.FC = () => {
   const { isSidebarOpen, toggleSidebar } = useUiStore();
   const {
     items,
-    setItems,
     filters,
     setFilters,
     resetFilters,
     selectedId,
     setSelectedId,
     isLoading,
-    setIsLoading,
+    fetchHistory,
+    deleteHistoryItem,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
   } = useHistoryStore();
 
   const [showFilters, setShowFilters] = useState(false);
 
-  // Load history on mount
+  // Load history on mount and filter change
   useEffect(() => {
-    loadHistory();
-  }, [filters]);
+    fetchHistory();
+  }, [filters, page]);
 
-  const loadHistory = async () => {
-    try {
-      setIsLoading(true);
-      const response = await api.history.getAll({
-        type: filters.type,
-        status: filters.status,
-        favorite: filters.favorite,
-        search: filters.search,
-      });
-      setItems(response.items);
-    } catch (error) {
-      console.error('Failed to load history:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (confirm('Delete this generation?')) {
       try {
-        await api.history.delete(id);
-        setItems(items.filter((item) => item.id !== id));
+        await deleteHistoryItem(id);
       } catch (error) {
         console.error('Delete failed:', error);
       }
@@ -119,13 +108,14 @@ export const HistorySidebar: React.FC = () => {
     if (confirm('Delete all history? This cannot be undone.')) {
       try {
         // Delete all items
-        await Promise.all(items.map((item) => api.history.delete(item.id)));
-        setItems([]);
+        await Promise.all(items.map((item) => deleteHistoryItem(item.id)));
       } catch (error) {
         console.error('Clear all failed:', error);
       }
     }
   };
+
+  const totalPages = Math.ceil(totalItems / pageSize);
 
   if (!isSidebarOpen) {
     return (
@@ -208,12 +198,7 @@ export const HistorySidebar: React.FC = () => {
               Favorites only
             </label>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full"
-              onClick={resetFilters}
-            >
+            <Button variant="ghost" size="sm" className="w-full" onClick={resetFilters}>
               Reset Filters
             </Button>
           </div>
@@ -228,12 +213,7 @@ export const HistorySidebar: React.FC = () => {
           <div className="text-center text-gray-500 py-8">
             <p>No history found</p>
             {(filters.search || filters.type || filters.status || filters.favorite) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="mt-2"
-              >
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="mt-2">
                 Clear filters
               </Button>
             )}
@@ -249,6 +229,29 @@ export const HistorySidebar: React.FC = () => {
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="p-3 border-t border-gray-800 flex items-center justify-between">
+          <button
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+            className="px-3 py-1.5 text-sm bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-400">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage(page + 1)}
+            disabled={page === totalPages}
+            className="px-3 py-1.5 text-sm bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {/* Footer Actions */}
       {items.length > 0 && (

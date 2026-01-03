@@ -2,6 +2,7 @@
 
 import logging
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -166,6 +167,7 @@ class ConnectionManager:
                 self.disconnect(generation_id)
 
 
+# Global manager instance for access from other modules
 manager = ConnectionManager()
 
 
@@ -220,10 +222,10 @@ async def update_api_key(request: UpdateApiKeyRequest):
         # Update environment variable
         import os
         os.environ['RUNWARE_API_KEY'] = request.apiKey
-        
+
         # Update runware service
         await runware_service.update_api_key(request.apiKey)
-        
+
         logger.info("API key updated successfully")
         return {"success": True}
     except Exception as e:
