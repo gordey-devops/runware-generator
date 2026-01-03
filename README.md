@@ -8,19 +8,19 @@
 
 ### New to the Project?
 
-Start here: **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)**
+Start here: **[PROJECT_OVERVIEW.md](doc/PROJECT_OVERVIEW.md)**
 
 ### Ready to Implement?
 
-Go to: **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)**
+Go to: **[IMPLEMENTATION_PLAN.md](doc/IMPLEMENTATION_PLAN.md)**
 
 ### Need Technical Details?
 
-See: **[ARCHITECTURE.md](ARCHITECTURE.md)** or **[ROADMAP.md](ROADMAP.md)**
+See: **[ARCHITECTURE.md](doc/ARCHITECTURE.md)** or **[ROADMAP.md](doc/ROADMAP.md)**
 
 ### Want to Know Current Status?
 
-Check: **[PROJECT_STATUS.md](PROJECT_STATUS.md)**
+Check: **[PROJECT_STATUS.md](doc/PROJECT_STATUS.md)**
 
 ---
 
@@ -28,63 +28,63 @@ Check: **[PROJECT_STATUS.md](PROJECT_STATUS.md)**
 
 ### 🎯 Overview & Status
 
-| Document                                       | Description                                  | When to Use                                    |
-| ---------------------------------------------- | -------------------------------------------- | ---------------------------------------------- |
-| **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** | Project goals, tech stack, current status    | Getting started, understanding the big picture |
-| **[PROJECT_STATUS.md](PROJECT_STATUS.md)**     | Phase progress, metrics, upcoming milestones | Checking what's done and what's next           |
-| **[INDEX.md](INDEX.md)**                       | Complete documentation index                 | Finding specific documentation                 |
+| Document                                           | Description                                  | When to Use                                    |
+| -------------------------------------------------- | -------------------------------------------- | ---------------------------------------------- |
+| **[PROJECT_OVERVIEW.md](doc/PROJECT_OVERVIEW.md)** | Project goals, tech stack, current status    | Getting started, understanding the big picture |
+| **[PROJECT_STATUS.md](doc/PROJECT_STATUS.md)**     | Phase progress, metrics, upcoming milestones | Checking what's done and what's next           |
+| **[INDEX.md](doc/INDEX.md)**                       | Complete documentation index                 | Finding specific documentation                 |
 
 ### 🗺️ Planning & Architecture
 
-| Document                                             | Description                                   | When to Use                                    |
-| ---------------------------------------------------- | --------------------------------------------- | ---------------------------------------------- |
-| **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)** | 10-phase implementation plan with timelines   | Planning work, understanding dependencies      |
-| **[ROADMAP.md](ROADMAP.md)**                         | Detailed technical roadmap with code examples | Understanding technical implementation details |
-| **[ARCHITECTURE.md](ARCHITECTURE.md)**               | System architecture, data flow, security      | Understanding system design and architecture   |
+| Document                                                 | Description                                   | When to Use                                    |
+| -------------------------------------------------------- | --------------------------------------------- | ---------------------------------------------- |
+| **[IMPLEMENTATION_PLAN.md](doc/IMPLEMENTATION_PLAN.md)** | 10-phase implementation plan with timelines   | Planning work, understanding dependencies      |
+| **[ROADMAP.md](doc/ROADMAP.md)**                         | Detailed technical roadmap with code examples | Understanding technical implementation details |
+| **[ARCHITECTURE.md](doc/ARCHITECTURE.md)**               | System architecture, data flow, security      | Understanding system design and architecture   |
 
 ### 👨‍💻 Development Guides
 
-| Document                                               | Description                                  | When to Use                             |
-| ------------------------------------------------------ | -------------------------------------------- | --------------------------------------- |
-| **[SETUP_GUIDE.md](SETUP_GUIDE.md)**                   | Environment setup, prerequisites, IDE config | Setting up your development environment |
-| **[CODE_STANDARDS.md](CODE_STANDARDS.md)**             | Code style, conventions, best practices      | Writing code, understanding style rules |
-| **[DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md)** | Git workflow, code review, testing           | Understanding development processes     |
+| Document                                                   | Description                                  | When to Use                             |
+| ---------------------------------------------------------- | -------------------------------------------- | --------------------------------------- |
+| **[SETUP_GUIDE.md](doc/SETUP_GUIDE.md)**                   | Environment setup, prerequisites, IDE config | Setting up your development environment |
+| **[CODE_STANDARDS.md](doc/CODE_STANDARDS.md)**             | Code style, conventions, best practices      | Writing code, understanding style rules |
+| **[DEVELOPMENT_WORKFLOW.md](doc/DEVELOPMENT_WORKFLOW.md)** | Git workflow, code review, testing           | Understanding development processes     |
 
 ### 📚 API & SDK Documentation
 
-| Document                             | Description                                   | When to Use                         |
-| ------------------------------------ | --------------------------------------------- | ----------------------------------- |
-| **[RUNWARE_SDK.md](RUNWARE_SDK.md)** | Runware SDK capabilities, methods, parameters | Using the AI SDK                    |
-| **[BACKEND_API.md](BACKEND_API.md)** | FastAPI endpoints, schemas, authentication    | Building backend features           |
-| **[IPC_API.md](IPC_API.md)**         | Electron IPC handlers, renderer API           | Implementing Electron communication |
+| Document                                                           | Description                                   | When to Use                         |
+| ------------------------------------------------------------------ | --------------------------------------------- | ----------------------------------- |
+| **[RUNWARE_SDK_CAPABILITIES.md](doc/RUNWARE_SDK_CAPABILITIES.md)** | Runware SDK capabilities, methods, parameters | Using the AI SDK                    |
+| **[BACKEND_API.md](doc/BACKEND_API.md)**                           | FastAPI endpoints, schemas, authentication    | Building backend features           |
+| **[IPC_API.md](doc/IPC_API.md)**                                   | Electron IPC handlers, renderer API           | Implementing Electron communication |
 
 ### 🧪 Testing & Quality
 
-| Document                                 | Description                    | When to Use                   |
-| ---------------------------------------- | ------------------------------ | ----------------------------- |
-| **[TESTING_GUIDE.md](TESTING_GUIDE.md)** | Unit, integration, E2E testing | Writing and running tests     |
-| **[TEST_RESULTS.md](TEST_RESULTS.md)**   | SDK test results, benchmarks   | Understanding SDK performance |
+| Document                                                   | Description                    | When to Use                   |
+| ---------------------------------------------------------- | ------------------------------ | ----------------------------- |
+| **[TESTING_GUIDE.md](doc/TESTING_GUIDE.md)**               | Unit, integration, E2E testing | Writing and running tests     |
+| **[TEST_RESULTS.md](doc/ARCHIVED_PHASES/TEST_RESULTS.md)** | SDK test results, benchmarks   | Understanding SDK performance |
 
 ### 📦 Build & Deployment
 
-| Document                                       | Description                               | When to Use                     |
-| ---------------------------------------------- | ----------------------------------------- | ------------------------------- |
-| **[BUILD_GUIDE.md](BUILD_GUIDE.md)**           | Development and production builds         | Building the application        |
-| **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** | Release process, versioning, distribution | Creating and releasing versions |
+| Document                                           | Description                               | When to Use                     |
+| -------------------------------------------------- | ----------------------------------------- | ------------------------------- |
+| **[BUILD_GUIDE.md](doc/BUILD_GUIDE.md)**           | Development and production builds         | Building the application        |
+| **[DEPLOYMENT_GUIDE.md](doc/DEPLOYMENT_GUIDE.md)** | Release process, versioning, distribution | Creating and releasing versions |
 
 ### 👤 User Documentation
 
-| Document                           | Description                          | When to Use                      |
-| ---------------------------------- | ------------------------------------ | -------------------------------- |
-| **[USER_GUIDE.md](USER_GUIDE.md)** | Installation, usage, troubleshooting | Using the application            |
-| **[FEATURES.md](FEATURES.md)**     | Current and planned features         | Understanding available features |
+| Document                               | Description                          | When to Use                      |
+| -------------------------------------- | ------------------------------------ | -------------------------------- |
+| **[USER_GUIDE.md](doc/USER_GUIDE.md)** | Installation, usage, troubleshooting | Using the application            |
+| **[FEATURES.md](doc/FEATURES.md)**     | Current and planned features         | Understanding available features |
 
 ### 📜 History & Archives
 
-| Document                                 | Description                       | When to Use                       |
-| ---------------------------------------- | --------------------------------- | --------------------------------- |
-| **[CHANGELOG.md](CHANGELOG.md)**         | Version history, breaking changes | Tracking changes between versions |
-| **[ARCHIVED_PHASES/](ARCHIVED_PHASES/)** | Completed phase reports           | Reviewing historical decisions    |
+| Document                                     | Description                       | When to Use                       |
+| -------------------------------------------- | --------------------------------- | --------------------------------- |
+| **[CHANGELOG.md](doc/CHANGELOG.md)**         | Version history, breaking changes | Tracking changes between versions |
+| **[ARCHIVED_PHASES/](doc/ARCHIVED_PHASES/)** | Completed phase reports           | Reviewing historical decisions    |
 
 ---
 
@@ -94,50 +94,50 @@ Check: **[PROJECT_STATUS.md](PROJECT_STATUS.md)**
 
 **Developers**
 
-1. Start: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
-2. Setup: [SETUP_GUIDE.md](SETUP_GUIDE.md)
-3. Code: [CODE_STANDARDS.md](CODE_STANDARDS.md)
-4. API: [BACKEND_API.md](BACKEND_API.md), [IPC_API.md](IPC_API.md)
-5. Test: [TESTING_GUIDE.md](TESTING_GUIDE.md)
+1. Start: [PROJECT_OVERVIEW.md](doc/PROJECT_OVERVIEW.md)
+2. Setup: [SETUP_GUIDE.md](doc/SETUP_GUIDE.md)
+3. Code: [CODE_STANDARDS.md](doc/CODE_STANDARDS.md)
+4. API: [BACKEND_API.md](doc/BACKEND_API.md), [IPC_API.md](doc/IPC_API.md)
+5. Test: [TESTING_GUIDE.md](doc/TESTING_GUIDE.md)
 
 **Project Managers**
 
-1. Start: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
-2. Plan: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
-3. Status: [PROJECT_STATUS.md](PROJECT_STATUS.md)
+1. Start: [PROJECT_OVERVIEW.md](doc/PROJECT_OVERVIEW.md)
+2. Plan: [IMPLEMENTATION_PLAN.md](doc/IMPLEMENTATION_PLAN.md)
+3. Status: [PROJECT_STATUS.md](doc/PROJECT_STATUS.md)
 
 **QA/Testers**
 
-1. Start: [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
-2. Test: [TESTING_GUIDE.md](TESTING_GUIDE.md)
-3. Results: [TEST_RESULTS.md](TEST_RESULTS.md)
-4. Features: [FEATURES.md](FEATURES.md)
+1. Start: [PROJECT_OVERVIEW.md](doc/PROJECT_OVERVIEW.md)
+2. Test: [TESTING_GUIDE.md](doc/TESTING_GUIDE.md)
+3. Results: [TEST_RESULTS.md](doc/ARCHIVED_PHASES/TEST_RESULTS.md)
+4. Features: [FEATURES.md](doc/FEATURES.md)
 
 **End Users**
 
-1. Start: [USER_GUIDE.md](USER_GUIDE.md)
-2. Features: [FEATURES.md](FEATURES.md)
-3. Troubleshoot: [USER_GUIDE.md#troubleshooting](USER_GUIDE.md#troubleshooting)
+1. Start: [USER_GUIDE.md](doc/USER_GUIDE.md)
+2. Features: [FEATURES.md](doc/FEATURES.md)
+3. Troubleshoot: [USER_GUIDE.md#troubleshooting](doc/USER_GUIDE.md#troubleshooting)
 
 ### By Task
 
 **Setup new environment**
-→ [SETUP_GUIDE.md](SETUP_GUIDE.md)
+→ [SETUP_GUIDE.md](doc/SETUP_GUIDE.md)
 
 **Add new feature**
-→ [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) → [ROADMAP.md](ROADMAP.md)
+→ [IMPLEMENTATION_PLAN.md](doc/IMPLEMENTATION_PLAN.md) → [ROADMAP.md](doc/ROADMAP.md)
 
 **Debug issue**
-→ [PROJECT_STATUS.md](PROJECT_STATUS.md) → [TEST_RESULTS.md](TEST_RESULTS.md)
+→ [PROJECT_STATUS.md](doc/PROJECT_STATUS.md) → [TEST_RESULTS.md](doc/ARCHIVED_PHASES/TEST_RESULTS.md)
 
 **Build for release**
-→ [BUILD_GUIDE.md](BUILD_GUIDE.md) → [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+→ [BUILD_GUIDE.md](doc/BUILD_GUIDE.md) → [DEPLOYMENT_GUIDE.md](doc/DEPLOYMENT_GUIDE.md)
 
 **Contribute code**
-→ [CODE_STANDARDS.md](CODE_STANDARDS.md) → [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md)
+→ [CODE_STANDARDS.md](doc/CODE_STANDARDS.md) → [DEVELOPMENT_WORKFLOW.md](doc/DEVELOPMENT_WORKFLOW.md)
 
 **Learn about SDK**
-→ [RUNWARE_SDK.md](RUNWARE_SDK.md)
+→ [RUNWARE_SDK_CAPABILITIES.md](doc/RUNWARE_SDK_CAPABILITIES.md)
 
 ---
 
@@ -163,7 +163,7 @@ Check: **[PROJECT_STATUS.md](PROJECT_STATUS.md)**
 - ⏳ Phase 4: React UI
 - ⏳ Phases 5-10
 
-**For detailed status, see [PROJECT_STATUS.md](PROJECT_STATUS.md)**
+**For detailed status, see [PROJECT_STATUS.md](doc/PROJECT_STATUS.md)**
 
 ---
 
@@ -199,7 +199,7 @@ npm run dev:renderer
 npm run dev:electron
 ```
 
-**For detailed setup, see [SETUP_GUIDE.md](SETUP_GUIDE.md)**
+**For detailed setup, see [SETUP_GUIDE.md](doc/SETUP_GUIDE.md)**
 
 ---
 
@@ -207,7 +207,7 @@ npm run dev:electron
 
 ### Internal Resources
 
-- Serena Memories: [.serena/memories/](../.serena/memories/) - Internal knowledge base
+- Serena Memories: [.serena/memories/](.serena/memories/) - Internal knowledge base
 - GitHub Issues: [repository]/issues - Bug reports and feature requests
 - Slack/Discord: #runware-generator - Team communication
 
@@ -225,15 +225,15 @@ npm run dev:electron
 
 ### Document Owners
 
-| Document               | Owner        | Review Frequency   |
-| ---------------------- | ------------ | ------------------ |
-| PROJECT_OVERVIEW.md    | Project Lead | Weekly             |
-| PROJECT_STATUS.md      | Tech Lead    | Daily (during dev) |
-| IMPLEMENTATION_PLAN.md | Tech Lead    | Per sprint         |
-| ROADMAP.md             | Tech Lead    | Per phase          |
-| ARCHITECTURE.md        | Tech Lead    | Per phase          |
-| API docs               | Dev Leads    | Per change         |
-| Code Standards         | Team         | Quarterly          |
+| Document                   | Owner        | Review Frequency   |
+| -------------------------- | ------------ | ------------------ |
+| doc/PROJECT_OVERVIEW.md    | Project Lead | Weekly             |
+| doc/PROJECT_STATUS.md      | Tech Lead    | Daily (during dev) |
+| doc/IMPLEMENTATION_PLAN.md | Tech Lead    | Per sprint         |
+| doc/ROADMAP.md             | Tech Lead    | Per phase          |
+| doc/ARCHITECTURE.md        | Tech Lead    | Per phase          |
+| API docs                   | Dev Leads    | Per change         |
+| Code Standards             | Team         | Quarterly          |
 
 ### Contributing to Docs
 
@@ -287,21 +287,21 @@ doc/
 ### Navigation
 
 - Use this README as your starting point
-- The [INDEX.md](INDEX.md) provides a complete alphabetical listing
+- The [INDEX.md](doc/INDEX.md) provides a complete alphabetical listing
 - Cross-references between documents make navigation easy
 
 ### Finding Information
 
 - Search files: Use your IDE's search or `grep`
 - Check document status: Look for "Last Updated" dates
-- Review phase reports: [ARCHIVED_PHASES/](ARCHIVED_PHASES/) for history
+- Review phase reports: [ARCHIVED_PHASES/](doc/ARCHIVED_PHASES/) for history
 
 ### Keeping Docs Updated
 
 - Update docs when code changes
 - Review docs during code reviews
 - Sync docs with each phase completion
-- Archive old versions to [ARCHIVED_PHASES/](ARCHIVED_PHASES/)
+- Archive old versions to [ARCHIVED_PHASES/](doc/ARCHIVED_PHASES/)
 
 ---
 
@@ -319,11 +319,11 @@ Our documentation follows these principles:
 
 ## 🚀 Next Steps
 
-1. **If you're new**: Start with [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
-2. **If you're implementing**: Check [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
-3. **If you're developing**: Read [CODE_STANDARDS.md](CODE_STANDARDS.md)
-4. **If you're testing**: See [TESTING_GUIDE.md](TESTING_GUIDE.md)
-5. **If you're deploying**: Go to [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+1. **If you're new**: Start with [PROJECT_OVERVIEW.md](doc/PROJECT_OVERVIEW.md)
+2. **If you're implementing**: Check [IMPLEMENTATION_PLAN.md](doc/IMPLEMENTATION_PLAN.md)
+3. **If you're developing**: Read [CODE_STANDARDS.md](doc/CODE_STANDARDS.md)
+4. **If you're testing**: See [TESTING_GUIDE.md](doc/TESTING_GUIDE.md)
+5. **If you're deploying**: Go to [DEPLOYMENT_GUIDE.md](doc/DEPLOYMENT_GUIDE.md)
 
 ---
 
