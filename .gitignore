@@ -62,6 +62,7 @@ logs/
 # Serena
 .serena/
 .claude/
+.opencode/
 
 # Generated files
 generated/
