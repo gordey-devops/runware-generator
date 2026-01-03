@@ -9,6 +9,7 @@ from datetime import datetime
 from runware import Runware, IImageInference
 
 from backend.core.config import settings
+from backend.services.cache_service import cache_service
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,7 @@ class RunwareService:
         model: Optional[str] = None,
         num_images: int = 1,
         progress_callback: Optional[Callable[[float, str], None]] = None,
+        use_cache: bool = True,
     ) -> list[Dict[str, Any]]:
         """
         Generate images from text prompt.
@@ -105,11 +107,31 @@ class RunwareService:
             model: Model name to use
             num_images: Number of images to generate
             progress_callback: Optional callback for progress updates
+            use_cache: Whether to use cache (default True)
 
         Returns:
             List of dictionaries containing image data and metadata
         """
         await self.ensure_initialized()
+
+        params = {
+            "width": width,
+            "height": height,
+            "steps": steps,
+            "guidance_scale": guidance_scale,
+            "seed": seed,
+            "model": model,
+            "num_images": num_images,
+            "negative_prompt": negative_prompt,
+        }
+
+        if use_cache:
+            cached_result = await cache_service.get_generation("text-to-image", prompt, params)
+            if cached_result:
+                if progress_callback:
+                    progress_callback(100.0, "Retrieved from cache")
+                logger.info("Returning cached result for text-to-image generation")
+                return cached_result
 
         try:
             if progress_callback:
@@ -167,6 +189,10 @@ class RunwareService:
                 progress_callback(100.0, "Generation complete!")
 
             logger.info(f"Generated {len(results)} images successfully")
+
+            if use_cache:
+                await cache_service.set_generation("text-to-image", prompt, params, results)
+
             return results
 
         except Exception as e:

@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     # Database Configuration
     database_url: str = "sqlite:///./runware_generator.db"
 
+    # Redis Configuration
+    redis_url: str = "redis://localhost:6379/0"
+    redis_max_connections: int = 20
+    cache_ttl: int = 3600
+
+    # PostgreSQL Configuration (optional, for production)
+    postgres_url: Optional[str] = None
+
     # CORS Configuration - Allow all localhost ports for development
     cors_origins: list[str] = ["*"]  # Allow all origins in development
 

@@ -11,6 +11,36 @@ from backend.core.config import settings
 
 Base = declarative_base()
 
+# Async PostgreSQL pool (optional, for production)
+asyncpg_pool: Optional[object] = None
+
+
+async def init_asyncpg_pool():
+    """Initialize asyncpg connection pool if postgres_url is configured."""
+    global asyncpg_pool
+    if settings.postgres_url:
+        try:
+            import asyncpg
+            asyncpg_pool = await asyncpg.create_pool(
+                settings.postgres_url,
+                min_size=5,
+                max_size=20,
+                command_timeout=60,
+            )
+            return True
+        except Exception as e:
+            print(f"Failed to initialize asyncpg pool: {e}")
+            return False
+    return False
+
+
+async def close_asyncpg_pool():
+    """Close asyncpg connection pool."""
+    global asyncpg_pool
+    if asyncpg_pool:
+        await asyncpg_pool.close()
+        asyncpg_pool = None
+
 
 class Generation(Base):
     """Model for storing image/video generation history."""

@@ -9,9 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.core.config import settings
+from backend.core.redis_client import redis_client
 from backend.models.database import init_db
 from backend.services.runware_service import runware_service
+from backend.services.cache_service import cache_service
+from backend.services.queue_service import queue_service
+from backend.services.pubsub_service import pubsub_service
 from backend.api.endpoints import generate
+from backend.middleware.rate_limiter import RateLimiterMiddleware
 from pydantic import BaseModel
 
 # Configure logging
@@ -36,6 +41,21 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing database...")
     init_db()
 
+    # Initialize Redis client
+    logger.info("Connecting to Redis...")
+    await redis_client.initialize()
+
+    # Initialize cache service
+    logger.info("Initializing cache service...")
+    await cache_service.initialize()
+
+    # Initialize queue service
+    logger.info("Initializing queue service...")
+    await queue_service.initialize()
+
+    # Initialize Pub/Sub service
+    logger.info("Initializing Pub/Sub service...")
+
     # Initialize Runware service
     logger.info("Connecting to Runware service...")
     await runware_service.initialize()
@@ -46,7 +66,9 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutting down Runware Generator Backend...")
+    await pubsub_service.cleanup()
     await runware_service.close()
+    await redis_client.close()
     logger.info("Backend shutdown complete")
 
 
@@ -65,6 +87,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Add rate limiting middleware
+app.add_middleware(
+    RateLimiterMiddleware,
+    requests_per_minute=60,
+    requests_per_hour=1000,
 )
 
 # Include routers

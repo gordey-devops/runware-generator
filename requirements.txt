@@ -24,6 +24,10 @@ pillow>=11.1.0              # Image processing (latest stable)
 sqlalchemy>=2.0.36          # ORM and database toolkit
 alembic>=1.14.0             # Database migrations (optional but recommended)
 
+# Redis & PostgreSQL
+redis>=5.0.0                # Async Redis client
+asyncpg>=0.29.0             # Async PostgreSQL driver
+
 # Communication
 websockets>=14.1            # WebSocket support
 
@@ -33,3 +37,13 @@ aiohttp>=3.11.0             # Async HTTP client for image downloads
 
 # Additional utilities
 typing-extensions>=4.12.2   # Type hints backports
+
+# Testing
+pytest>=9.0.2               # Testing framework
+pytest-asyncio>=1.3.0       # Async test support
+pytest-mock>=3.12.0         # Mock support
+pytest-cov>=4.1.0           # Coverage reporting
+
+# Type Checking & Linting
+ruff>=0.14.10              # Linting and formatting
+mypy>=1.19.1               # Static type checking

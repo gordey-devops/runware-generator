@@ -19,6 +19,8 @@ from backend.api.schemas import (
 )
 from backend.models.database import get_db, Generation
 from backend.services.runware_service import runware_service
+from backend.services.queue_service import queue_service
+from backend.services.cache_service import cache_service
 
 logger = logging.getLogger(__name__)
 
@@ -83,12 +85,17 @@ async def generate_text_to_image(
     # Start generation in background
     generation_id = generation.id
 
+    async def send_progress_updates(progress: float, message: str):
+        """Send progress via both WebSocket and Pub/Sub."""
+        await ws_manager.send_progress(generation_id, progress, message)
+        await cache_service.publish_progress(generation_id, progress, message)
+
     async def run_generation():
         try:
             logger.info(f"Starting text-to-image generation (ID: {generation_id})")
 
-            # Send initial progress
-            await ws_manager.send_progress(generation_id, 10.0, "Initializing...")
+            # Send initial progress via both channels
+            await send_progress_updates(10.0, "Initializing...")
 
             # Generate image using Runware service
             results = await runware_service.text_to_image(
@@ -101,10 +108,10 @@ async def generate_text_to_image(
                 seed=request.seed,
                 model=request.model,
                 num_images=request.num_images,
-                progress_callback=lambda p, m: ws_manager.send_progress(generation_id, p, m),
+                progress_callback=lambda p, m: asyncio.create_task(send_progress_updates(p, m)),
             )
 
-            # Send completion via WebSocket
+            # Send completion via both channels
             first_result = results[0]
 
             # Update database
@@ -116,7 +123,9 @@ async def generate_text_to_image(
             generation.seed = first_result["seed"]
             db.commit()
 
-            await ws_manager.send_complete(generation_id, GenerationResponse.from_orm(generation).dict())
+            completion_data = GenerationResponse.from_orm(generation).dict()
+            await ws_manager.send_complete(generation_id, completion_data)
+            await cache_service.publish_complete(generation_id, completion_data)
 
             logger.info(f"Text-to-image generation completed (ID: {generation_id})")
 
@@ -130,6 +139,7 @@ async def generate_text_to_image(
             db.commit()
 
             await ws_manager.send_error(generation_id, str(e))
+            await cache_service.publish_error(generation_id, str(e))
 
     # Start background task
     import asyncio
@@ -186,11 +196,16 @@ async def generate_image_to_image(
 
     generation_id = generation.id
 
+    async def send_progress_updates(progress: float, message: str):
+        """Send progress via both WebSocket and Pub/Sub."""
+        await ws_manager.send_progress(generation_id, progress, message)
+        await cache_service.publish_progress(generation_id, progress, message)
+
     async def run_generation():
         try:
             logger.info(f"Starting image-to-image generation (ID: {generation_id})")
 
-            await ws_manager.send_progress(generation_id, 10.0, "Initializing...")
+            await send_progress_updates(10.0, "Initializing...")
 
             result = await runware_service.image_to_image(
                 prompt=request.prompt,
@@ -201,7 +216,7 @@ async def generate_image_to_image(
                 guidance_scale=request.guidance_scale,
                 seed=request.seed,
                 model=request.model,
-                progress_callback=lambda p, m: ws_manager.send_progress(generation_id, p, m),
+                progress_callback=lambda p, m: asyncio.create_task(send_progress_updates(p, m)),
             )
 
             generation.status = "completed"
@@ -212,7 +227,9 @@ async def generate_image_to_image(
             generation.seed = result["seed"]
             db.commit()
 
-            await ws_manager.send_complete(generation_id, GenerationResponse.from_orm(generation).dict())
+            completion_data = GenerationResponse.from_orm(generation).dict()
+            await ws_manager.send_complete(generation_id, completion_data)
+            await cache_service.publish_complete(generation_id, completion_data)
 
             logger.info(f"Image-to-image generation completed (ID: {generation_id})")
 
@@ -353,3 +370,89 @@ async def delete_generation(
     db.commit()
 
     logger.info(f"Deleted generation {generation_id}")
+
+
+@router.get("/queue/status")
+async def get_queue_status():
+    """
+    Get current queue status.
+
+    Returns:
+        Dictionary with queue information
+    """
+    from backend.services.queue_service import queue_service
+
+    queue_info = await queue_service.get_queue_info()
+    return queue_info
+
+
+@router.delete("/queue/clear")
+async def clear_queue(
+    priority: Optional[str] = None,
+):
+    """
+    Clear queue(s).
+
+    Args:
+        priority: Specific priority queue to clear (None for all)
+
+    Returns:
+        Number of tasks removed
+    """
+    from backend.services.queue_service import queue_service
+
+    removed_count = await queue_service.clear(priority)
+    return {"removed": removed_count}
+
+
+@router.get("/cache/stats")
+async def get_cache_stats():
+    """
+    Get cache statistics.
+
+    Returns:
+        Dictionary with cache information
+    """
+    from backend.services.cache_service import cache_service
+    from backend.core.redis_client import redis_client
+
+    try:
+        client = redis_client.client
+        pattern = "cache:generation:*"
+        keys = []
+        async for key in client.scan_iter(match=pattern):
+            keys.append(key)
+
+        return {
+            "total_entries": len(keys),
+            "status": "active",
+        }
+    except Exception as e:
+        return {
+            "total_entries": 0,
+            "status": "error",
+            "error": str(e),
+        }
+
+
+@router.delete("/cache/clear")
+async def clear_cache(
+    generation_type: Optional[str] = None,
+):
+    """
+    Clear cache entries.
+
+    Args:
+        generation_type: Specific generation type to clear (None for all)
+
+    Returns:
+        Number of entries removed
+    """
+    from backend.services.cache_service import cache_service
+
+    if generation_type:
+        removed_count = await cache_service.delete_by_type(generation_type)
+    else:
+        removed_count = await cache_service.clear_all()
+
+    return {"removed": removed_count}
